@@ -1,7 +1,3 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-
 """ 
 1. `create_engine` 함수를 이용해 DB 연결할 엔진 생성
 
@@ -34,24 +30,26 @@ from sqlalchemy.orm import sessionmaker
         이 클래스를 상속받아 생성된 Python 클래스는 데이터베이스 테이블과 매핑됩니다.
         Base 클래스는 테이블 생성, 데이터 삽입, 조회, 수정, 삭제 등의 데이터베이스 작업을 수행하는 메서드를 제공합니다.
 """
+
+
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
 # SQLite 데이터베이스 파일 경로 설정
-SQLALCHEMY_DATABASE_URL = "sqlite:///./qna.db"
+SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./qna.db"
 
 # SQLAlchemy 엔진 생성
-engine = create_engine(SQLALCHEMY_DATABASE_URL, echo=True)
+engine = create_async_engine(SQLALCHEMY_DATABASE_URL, echo=True)
 
-SessionLocal = sessionmaker(
-    bind=engine,
-    autocommit=False,
-    autoflush=False,
+# 세션 만들기 (async)
+async def get_db():
+    async with async_session() as session:
+        yield session
+
+# 비동기 세션 메이커 생성
+async_session = sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False
 )
 
 Base = declarative_base()
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()

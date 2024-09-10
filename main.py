@@ -11,38 +11,62 @@
 from typing import List
 
 from fastapi import Depends, FastAPI, HTTPException
+from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
 from . import models, schemas
 
-from database_sqlite import engine, get_db
-from sqlalchemy.orm import Session
+# SQLite 데이터베이스 파일 경로 설정
+SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./qna.db"
 
-models.Base.metadata.create_all(bind=engine)
+# SQLAlchemy 엔진 생성 (async)
+engine = create_async_engine(SQLALCHEMY_DATABASE_URL, echo=True)
+
+# 비동기 세션 메이커 생성
+async_session = sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False
+)
+
+# 모델 초기화
+async def init_models():
+    async with engine.begin() as conn:
+        await conn.run_sync(models.Base.metadata.create_all)
+
+# FastAPI 애플리케이션 시작 시 모델 초기화
+@app.on_event("startup")
+async def startup_event():
+    await init_models()
+
+# DB 연결 세션 획득 함수
+async def get_db():
+    async with async_session() as session:
+        yield session
 
 
 app = FastAPI()
 
 
 @app.post("/users", response_model=schemas.User)
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    existed_user = db.query(models.User).filter_by(
+async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
+    existed_user = await db.query(models.User).filter_by(
         email=user.email
     ).first()
+    # existed_user = db.query(models.User).filter_by(email=user.email).first()
 
     if existed_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
     user = models.User(email=user.email, password=user.password)
     db.add(user)
-    db.commit()
+    await db.commit()
 
     return user
 
 
 @app.get("/users", response_model=List[schemas.User])
-def read_users(db: Session = Depends(get_db)):
-    return db.query(models.User).all()
-    
+async def read_users(db: AsyncSession = Depends(get_db)):
+    return await db.query(models.User).all()    
 
 if __name__ == "__main__":
   import uvicorn
