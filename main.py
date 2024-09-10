@@ -31,7 +31,7 @@ async_session = sessionmaker(
 # 모델 초기화
 async def init_models():
     async with engine.begin() as conn:
-        await conn.run_sync(models.Base.metadata.create_all)
+        await models.Base.metadata.create_all(bind=conn)
 
 # FastAPI 애플리케이션 시작 시 모델 초기화
 @app.on_event("startup")
@@ -49,10 +49,9 @@ app = FastAPI()
 
 @app.post("/users", response_model=schemas.User)
 async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
-    existed_user = await db.query(models.User).filter_by(
+    existed_user = await db.query(models.User).filter_by( 
         email=user.email
     ).first()
-    # existed_user = db.query(models.User).filter_by(email=user.email).first()
 
     if existed_user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -66,7 +65,9 @@ async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_d
 
 @app.get("/users", response_model=List[schemas.User])
 async def read_users(db: AsyncSession = Depends(get_db)):
-    return await db.query(models.User).all()    
+    return await db.query(models.User).all()
+
+
 
 if __name__ == "__main__":
   import uvicorn
