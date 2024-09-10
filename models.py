@@ -6,7 +6,7 @@ Base = declarative_base()
 """
 
 # from .database import Base  # 기존 코드 주석 처리
-from database import Base  # 수정된 코드
+from database_sqlite import Base  # 수정된 코드
 
 
 class User(Base):

@@ -34,10 +34,11 @@ from sqlalchemy.orm import sessionmaker
         이 클래스를 상속받아 생성된 Python 클래스는 데이터베이스 테이블과 매핑됩니다.
         Base 클래스는 테이블 생성, 데이터 삽입, 조회, 수정, 삭제 등의 데이터베이스 작업을 수행하는 메서드를 제공합니다.
 """
-# MySQL 서버가 Docker 컨테이너 내부에서 실행 중: localhost 사용
-# MySQL 서버가 **Docker 컨테이너 외부 (호스트 시스템)**에서 실행 중: 호스트 시스템의 실제 IP 주소 사용
-# engine = create_engine("mysql+pymysql://admin:1234@0.0.0.0:3306/dev")
-engine = create_engine(f"mysql+pymysql://admin:1234@192.168.1.83:3306/dev")
+# SQLite 데이터베이스 파일 경로 설정
+SQLALCHEMY_DATABASE_URL = "sqlite:///./qna.db"
+
+# SQLAlchemy 엔진 생성
+engine = create_engine(SQLALCHEMY_DATABASE_URL, echo=True)
 
 SessionLocal = sessionmaker(
     bind=engine,
@@ -46,3 +47,11 @@ SessionLocal = sessionmaker(
 )
 
 Base = declarative_base()
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

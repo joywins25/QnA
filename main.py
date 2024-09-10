@@ -11,24 +11,16 @@
 from typing import List
 
 from fastapi import Depends, FastAPI, HTTPException
+
+from . import models, schemas
+
+from database_sqlite import engine, get_db
 from sqlalchemy.orm import Session
-
-import models, schemas  # 수정된 코드
-
-from database import SessionLocal, engine  # 수정된 코드
 
 models.Base.metadata.create_all(bind=engine)
 
 
 app = FastAPI()
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 @app.post("/users", response_model=schemas.User)
@@ -52,6 +44,6 @@ def read_users(db: Session = Depends(get_db)):
     return db.query(models.User).all()
     
 
-# if __name__ == "__main__":
-#   import uvicorn
-#   uvicorn.run("main:app", reload=True)
+if __name__ == "__main__":
+  import uvicorn
+  uvicorn.run("main:app", reload=True)
